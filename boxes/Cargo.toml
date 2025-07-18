@@ -1,0 +1,8 @@
+[package]
+name = 'boxes'
+version = '0.1.0'
+edition = '2021'
+
+[dependencies]
+bevy = { version = '0.16', features = ['dynamic_linking'] }
+bevy_spacetimedb = '0.6.0'
