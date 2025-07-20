@@ -4,5 +4,7 @@ version = '0.1.0'
 edition = '2021'
 
 [dependencies]
-bevy = { version = '0.16', features = ['dynamic_linking'] }
-bevy_spacetimedb = '0.6.0'
+bevy = { version = "0.16", features = ["dynamic_linking"] }
+bevy_spacetimedb = "0.6.0"
+bevy_rapier3d     = { version = "0.30", features = ["dim3", "debug-render-3d"] }
+leafwing-input-manager = { version = "0.17", features = ["keyboard"] }
