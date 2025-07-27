@@ -1,15 +1,12 @@
-use bevy::prelude::*;
-use dolly::prelude::*;
-use mint::{Point3, Vector3};
+use crate::input::Action;
 use crate::player::Player;
 use bevy::input::mouse::MouseMotion;
-use crate::input::Action;
-use leafwing_input_manager::prelude::ActionState;
+use bevy::prelude::*;
 use bevy::window::PrimaryWindow;
+use dolly::prelude::*;
+use leafwing_input_manager::prelude::ActionState;
+use mint::{Point3, Vector3};
 
-/// -------------------------------------------------------------------------
-/// Плагин
-/// -------------------------------------------------------------------------
 pub struct CameraPlugin;
 impl Plugin for CameraPlugin {
     fn build(&self, app: &mut App) {
@@ -23,7 +20,10 @@ impl Plugin for CameraPlugin {
 /// Состояние камеры (ресурс)
 /// -------------------------------------------------------------------------
 #[derive(Clone, Copy, PartialEq, Eq)]
-enum CamMode { Pause, Follow }
+enum CamMode {
+    Pause,
+    Follow,
+}
 
 #[derive(Resource)]
 struct CamState {
@@ -34,8 +34,7 @@ impl Default for CamState {
     fn default() -> Self {
         Self {
             mode: CamMode::Follow,
-            start: Transform::from_xyz(-8.0, 8.0, 8.0)
-                .looking_at(Vec3::ZERO, Vec3::Y),
+            start: Transform::from_xyz(-8.0, 8.0, 8.0).looking_at(Vec3::ZERO, Vec3::Y),
         }
     }
 }
@@ -58,15 +57,19 @@ fn spawn_camera(mut commands: Commands, state: Res<CamState>) {
             z: state.start.translation.z,
         }))
         .with(YawPitch::new())
-        .with(Arm::new(Vector3 { x: 0.0, y: 3.0, z: -6.0 }))
-        .with(LookAt::new(Point3 { x: 0.0, y: 0.0, z: 0.0 }))
+        .with(Arm::new(Vector3 {
+            x: 0.0,
+            y: 3.0,
+            z: -6.0,
+        }))
+        .with(LookAt::new(Point3 {
+            x: 0.0,
+            y: 0.0,
+            z: 0.0,
+        }))
         .build();
 
-    commands.spawn((
-        Camera3d::default(),
-        state.start,
-        DollyRig(rig),
-    ));
+    commands.spawn((Camera3d::default(), state.start, DollyRig(rig)));
 }
 
 /// -------------------------------------------------------------------------
@@ -91,7 +94,11 @@ fn update_rig(
                 y: state.start.translation.y,
                 z: state.start.translation.z,
             };
-            rig.driver_mut::<LookAt>().target = Point3 { x: 0.0, y: 0.0, z: 0.0 };
+            rig.driver_mut::<LookAt>().target = Point3 {
+                x: 0.0,
+                y: 0.0,
+                z: 0.0,
+            };
         }
         CamMode::Follow => {
             let player_tf = match q_player.single() {
@@ -113,7 +120,7 @@ fn update_rig(
 
     let view = rig.update(time.delta_secs()); // CameraView
     cam_tf.translation = Vec3::new(view.position.x, view.position.y, view.position.z);
-    cam_tf.rotation    = Quat::from_xyzw(
+    cam_tf.rotation = Quat::from_xyzw(
         view.rotation.v.x,
         view.rotation.v.y,
         view.rotation.v.z,
@@ -129,11 +136,16 @@ fn orbit_camera(
     windows: Query<&Window, With<PrimaryWindow>>,
 ) {
     if let Ok(window) = windows.single() {
-        if window.cursor_options.visible { return; }
+        if window.cursor_options.visible {
+            return;
+        }
     }
 
-    let mut rig = match rig_q.single_mut() { Ok(r) => r, Err(_) => return };
-    let yp     = rig.driver_mut::<YawPitch>();
+    let mut rig = match rig_q.single_mut() {
+        Ok(r) => r,
+        Err(_) => return,
+    };
+    let yp = rig.driver_mut::<YawPitch>();
 
     let delta = mouse.read().fold(Vec2::ZERO, |d, e| d + e.delta);
     yp.rotate_yaw_pitch(-0.15 * delta.x, 0.15 * delta.y);
@@ -154,6 +166,6 @@ fn orbit_camera(
     }
 
     const MIN_PITCH: f32 = -1200.0;
-    const MAX_PITCH: f32 =  60.0;
+    const MAX_PITCH: f32 = 60.0;
     yp.pitch_degrees = yp.pitch_degrees.clamp(MIN_PITCH, MAX_PITCH);
- }
+}

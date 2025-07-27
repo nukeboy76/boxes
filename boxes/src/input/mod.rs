@@ -1,5 +1,5 @@
 use bevy::prelude::*;
-use leafwing_input_manager::prelude::{Actionlike, InputMap, VirtualDPad, GamepadStick};
+use leafwing_input_manager::prelude::{Actionlike, GamepadStick, InputMap, VirtualDPad};
 
 // ---------------------------------------------------------------------------
 // Action enum
@@ -13,7 +13,7 @@ pub enum Action {
 
     /// Jump via Space or South face button (A / Cross)
     Jump,
-    
+
     #[actionlike(DualAxis)]
     Look,
 
@@ -26,20 +26,22 @@ pub enum Action {
 // ---------------------------------------------------------------------------
 #[must_use]
 pub fn default_input_map() -> InputMap<Action> {
+    use bevy::prelude::GamepadButton as GPB;
     use Action::*;
     use KeyCode::*;
-    use bevy::prelude::GamepadButton as GPB;
 
     let mut map = InputMap::default();
 
     // -- Unified Move (analog & digital) --
     map.insert_dual_axis(Move, VirtualDPad::wasd())
-       .insert_dual_axis(Move, VirtualDPad::new(GPB::DPadUp, GPB::DPadDown, GPB::DPadLeft, GPB::DPadRight))
-       .insert_dual_axis(Move, GamepadStick::LEFT);
+        .insert_dual_axis(
+            Move,
+            VirtualDPad::new(GPB::DPadUp, GPB::DPadDown, GPB::DPadLeft, GPB::DPadRight),
+        )
+        .insert_dual_axis(Move, GamepadStick::LEFT);
 
     // -- Jump --
-    map.insert(Jump, Space)
-       .insert(Jump, GPB::South);
+    map.insert(Jump, Space).insert(Jump, GPB::South);
 
     map.insert_dual_axis(Look, GamepadStick::RIGHT);
 

@@ -11,10 +11,7 @@ impl Plugin for LevelPlugin {
     }
 }
 
-fn spawn_level(
-    mut commands: Commands,
-    level_assets: Res<LevelAssets>,
-) {
+fn spawn_level(mut commands: Commands, level_assets: Res<LevelAssets>) {
     commands
         .spawn((
             SceneRoot(level_assets.level.clone()),
@@ -30,7 +27,10 @@ fn spawn_level(
 
     // свет
     commands.spawn((
-        PointLight { shadows_enabled: true, ..default() },
+        PointLight {
+            shadows_enabled: true,
+            ..default()
+        },
         Transform::from_xyz(4., 8., 4.),
     ));
 }

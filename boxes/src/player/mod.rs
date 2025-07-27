@@ -1,9 +1,9 @@
-use bevy::prelude::*;
 use bevy::pbr::MeshMaterial3d;
+use bevy::prelude::*;
 use bevy_rapier3d::prelude::*;
 use leafwing_input_manager::prelude::*;
 
-use crate::input::{Action, default_input_map};
+use crate::input::{default_input_map, Action};
 
 /// Component marking a player entity
 #[derive(Component)]
@@ -42,11 +42,7 @@ impl PlayerBundle {
             transform: Transform::from_xyz(0.0, 0.5, 0.0),
             player: Player { id },
             body: RigidBody::Dynamic,
-            collider: Collider::capsule(
-                Vec3::new(0.0, -0.5, 0.0), 
-                Vec3::new(0.0, 0.5, 0.0), 
-                0.5,
-            ),
+            collider: Collider::capsule(Vec3::new(0.0, -0.5, 0.0), Vec3::new(0.0, 0.5, 0.0), 0.5),
             damping: Damping {
                 linear_damping: 1.0,
                 angular_damping: 1.0,
@@ -63,8 +59,7 @@ impl PlayerBundle {
 pub struct PlayerPlugin;
 impl Plugin for PlayerPlugin {
     fn build(&self, app: &mut App) {
-        app
-            .add_systems(Startup, spawn_player)
+        app.add_systems(Startup, spawn_player)
             .add_systems(PostUpdate, update_all.before(PhysicsSet::SyncBackend));
     }
 }
@@ -84,7 +79,7 @@ fn spawn_player(
         .spawn(PlayerBundle::new(1, capsule, blue))
         .insert(LockedAxes::ROTATION_LOCKED_X | LockedAxes::ROTATION_LOCKED_Z)
         .insert(Ccd::enabled())
-        .insert(SoftCcd {prediction: 2.});
+        .insert(SoftCcd { prediction: 2. });
 }
 
 fn update_all(
@@ -115,7 +110,11 @@ fn update_all(
         }
     }
 
-    let cam_tf = if let Ok(t) = q_cam.single() { t } else { return };
+    let cam_tf = if let Ok(t) = q_cam.single() {
+        t
+    } else {
+        return;
+    };
     for mut player_tf in params.p1().iter_mut() {
         let f = cam_tf.forward();
         let dir = Vec3::new(f.x, 0.0, f.z);

@@ -1,3 +1,3 @@
 fn main() {
-	boxes::run();
+    boxes::run();
 }

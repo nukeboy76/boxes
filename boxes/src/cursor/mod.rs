@@ -30,7 +30,7 @@ fn grab_on_click(
     }
     if let Ok(mut window) = windows.single_mut() {
         window.cursor_options.grab_mode = CursorGrabMode::Locked;
-        window.cursor_options.visible   = false;
+        window.cursor_options.visible = false;
         state.locked = true;
     }
 }
@@ -40,13 +40,16 @@ fn release_on_toggle(
     mut state: ResMut<CursorState>,
     q_input: Query<&ActionState<Action>, With<Player>>,
 ) {
-    let input = match q_input.single() { Ok(i) => i, Err(_) => return };
+    let input = match q_input.single() {
+        Ok(i) => i,
+        Err(_) => return,
+    };
     if !state.locked || !input.just_pressed(&Action::ToggleCursor) {
         return;
     }
     if let Ok(mut window) = windows.single_mut() {
         window.cursor_options.grab_mode = CursorGrabMode::None;
-        window.cursor_options.visible   = true;
+        window.cursor_options.visible = true;
         state.locked = false;
     }
 }
@@ -54,6 +57,6 @@ fn release_on_toggle(
 fn unlock_cursor(mut windows: Query<&mut Window, With<PrimaryWindow>>) {
     if let Ok(mut window) = windows.single_mut() {
         window.cursor_options.grab_mode = CursorGrabMode::None;
-        window.cursor_options.visible   = true;
+        window.cursor_options.visible = true;
     }
 }

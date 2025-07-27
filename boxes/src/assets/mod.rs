@@ -21,11 +21,10 @@ pub struct AssetPlugin;
 
 impl Plugin for AssetPlugin {
     fn build(&self, app: &mut App) {
-        app.init_state::<AppState>()
-           .add_loading_state(
-               LoadingState::new(AppState::Loading)
-                   .continue_to_state(AppState::InGame)
-                   .load_collection::<LevelAssets>(),
-           );
+        app.init_state::<AppState>().add_loading_state(
+            LoadingState::new(AppState::Loading)
+                .continue_to_state(AppState::InGame)
+                .load_collection::<LevelAssets>(),
+        );
     }
 }
