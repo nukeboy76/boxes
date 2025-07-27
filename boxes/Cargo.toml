@@ -5,8 +5,9 @@ edition = '2021'
 
 [dependencies]
 bevy = { version = "0.16", features = ["dynamic_linking"] }
+bevy_asset_loader = { version = "0.23"}
 bevy_dolly  = "0.0.5"
-bevy_rapier3d = { version = "0.30", features = ["dim3", "debug-render-3d"] }
+bevy_rapier3d = { version = "0.30", features = ["async-collider", "dim3", "debug-render-3d"] }
 bevy_spacetimedb = "0.6.0"
 dolly = "0.6.0"
 leafwing-input-manager = { version = "0.17.1", features = ["keyboard"] }

@@ -1,34 +1,36 @@
 use bevy::prelude::*;
-use bevy::render::mesh::PlaneMeshBuilder;
 use bevy_rapier3d::prelude::*;
+
+use crate::assets::{AppState, LevelAssets};
 
 pub struct LevelPlugin;
 
 impl Plugin for LevelPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(Startup, setup);
+        app.add_systems(OnEnter(AppState::InGame), spawn_level);
     }
 }
 
-fn setup(
+fn spawn_level(
     mut commands: Commands,
-    mut meshes: ResMut<Assets<Mesh>>,
-    mut mats: ResMut<Assets<StandardMaterial>>,
+    level_assets: Res<LevelAssets>,
 ) {
-    // visual ground
-    commands.spawn((
-        Mesh3d(meshes.add(Mesh::from(PlaneMeshBuilder::from_size(Vec2::splat(100.0))))),
-        MeshMaterial3d(mats.add(Color::srgb(0.1, 0.6, 0.1))),
-    ));
-    // physical ground
-    commands.spawn((
-        Collider::cuboid(50.0, 0.1, 50.0),
-        RigidBody::Fixed,
-    ));
+    commands
+        .spawn((
+            SceneRoot(level_assets.level.clone()),
+            Transform::from_xyz(0., -5., 0.),
+            GlobalTransform::default(),
+            Visibility::Visible,
+        ))
+        .insert(AsyncSceneCollider {
+            shape: Some(ComputedColliderShape::ConvexHull),
+            ..default()
+        })
+        .insert(Friction::coefficient(0.5));
 
     // свет
     commands.spawn((
         PointLight { shadows_enabled: true, ..default() },
-        Transform::from_xyz(4.0, 8.0, 4.0),
+        Transform::from_xyz(4., 8., 4.),
     ));
 }

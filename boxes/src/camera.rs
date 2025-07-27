@@ -1,11 +1,11 @@
 use bevy::prelude::*;
-use bevy::input::ButtonInput;
 use dolly::prelude::*;
 use mint::{Point3, Vector3};
 use crate::player::Player;
 use bevy::input::mouse::MouseMotion;
 use crate::input::Action;
 use leafwing_input_manager::prelude::ActionState;
+use bevy::window::PrimaryWindow;
 
 /// -------------------------------------------------------------------------
 /// Плагин
@@ -126,7 +126,12 @@ fn orbit_camera(
     mut rig_q: Query<&mut DollyRig>,
     mut mouse: EventReader<MouseMotion>,
     player_input: Query<&ActionState<Action>, With<Player>>,
+    windows: Query<&Window, With<PrimaryWindow>>,
 ) {
+    if let Ok(window) = windows.single() {
+        if window.cursor_options.visible { return; }
+    }
+
     let mut rig = match rig_q.single_mut() { Ok(r) => r, Err(_) => return };
     let yp     = rig.driver_mut::<YawPitch>();
 
@@ -143,12 +148,12 @@ fn orbit_camera(
         if v != Vec2::ZERO {
             yp.rotate_yaw_pitch(
                 -v.x * 90.0 * time.delta_secs(),
-                -v.y * 90.0 * time.delta_secs(),
+                -v.y * 360.0 * time.delta_secs(),
             );
         }
     }
 
-    const MIN_PITCH: f32 = -89.0f32.to_radians();
-    const MAX_PITCH: f32 =  89.0f32.to_radians();
-    yp.pitch_degrees = yp.pitch_degrees.clamp(-89.0, 89.0);
+    const MIN_PITCH: f32 = -1200.0;
+    const MAX_PITCH: f32 =  60.0;
+    yp.pitch_degrees = yp.pitch_degrees.clamp(MIN_PITCH, MAX_PITCH);
  }

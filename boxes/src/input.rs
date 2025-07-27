@@ -16,6 +16,9 @@ pub enum Action {
     
     #[actionlike(DualAxis)]
     Look,
+
+    /// Mouse cursor capture
+    ToggleCursor,
 }
 
 // ---------------------------------------------------------------------------
@@ -39,6 +42,8 @@ pub fn default_input_map() -> InputMap<Action> {
        .insert(Jump, GPB::South);
 
     map.insert_dual_axis(Look, GamepadStick::RIGHT);
+
+    map.insert(ToggleCursor, Escape);
 
     map
 }

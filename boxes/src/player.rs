@@ -1,6 +1,5 @@
 use bevy::prelude::*;
 use bevy::pbr::MeshMaterial3d;
-use bevy::math::prelude::Cuboid;
 use bevy_rapier3d::prelude::*;
 use leafwing_input_manager::prelude::*;
 
@@ -12,7 +11,7 @@ pub struct Player {
     pub id: u64,
 }
 
-/// Bundle grouping visuals, physics, and input for a player cube
+/// Bundle grouping visuals, physics, and input for a player capsule
 #[derive(Bundle)]
 pub struct PlayerBundle {
     // Visual
@@ -28,105 +27,104 @@ pub struct PlayerBundle {
     pub body: RigidBody,
     pub collider: Collider,
     pub damping: Damping,
-    pub impulse: ExternalImpulse,
+    pub force: ExternalForce,
 
     // Input
     pub input_map: InputMap<Action>,
     pub action_state: ActionState<Action>,
 }
-
 impl PlayerBundle {
-    /// Create a new player cube with the given id, mesh handle, and material
     pub fn new(id: u64, mesh: Handle<Mesh>, mat: Handle<StandardMaterial>) -> Self {
-        PlayerBundle {
+        let mut pl = PlayerBundle {
             mesh: Mesh3d(mesh),
             material: MeshMaterial3d(mat),
             visibility: Visibility::Visible,
             transform: Transform::from_xyz(0.0, 0.5, 0.0),
             player: Player { id },
             body: RigidBody::Dynamic,
-            collider: Collider::cuboid(0.5, 0.5, 0.5),
+            collider: Collider::capsule(
+                Vec3::new(0.0, -0.5, 0.0), 
+                Vec3::new(0.0, 0.5, 0.0), 
+                0.5,
+            ),
             damping: Damping {
                 linear_damping: 1.0,
                 angular_damping: 1.0,
             },
-            impulse: ExternalImpulse::default(),
+            force: ExternalForce::default(),
             input_map: default_input_map(),
             action_state: Default::default(),
-        }
+        };
+        pl.transform.rotate_y(45.);
+        pl
     }
 }
 
-/// Plugin to spawn and drive player systems
 pub struct PlayerPlugin;
 impl Plugin for PlayerPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(Startup, spawn_player)
-           .add_systems(Update, (apply_movement, face_camera));
+        app
+            .add_systems(Startup, spawn_player)
+            .add_systems(PostUpdate, update_all.before(PhysicsSet::SyncBackend));
     }
 }
 
-/// Spawn a single player cube
 fn spawn_player(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
 ) {
-    let cube = meshes.add(Cuboid::new(1.0, 1.0, 1.0));
+    let capsule = meshes.add(Capsule3d::new(0.5, 1.0));
     let blue = materials.add(StandardMaterial {
         base_color: Color::srgb(0.0, 0.0, 1.0),
         ..default()
     });
 
-    commands.spawn(PlayerBundle::new(1, cube, blue));
+    commands
+        .spawn(PlayerBundle::new(1, capsule, blue))
+        .insert(LockedAxes::ROTATION_LOCKED_X | LockedAxes::ROTATION_LOCKED_Z)
+        .insert(Ccd::enabled())
+        .insert(SoftCcd {prediction: 2.});
 }
 
-/// Применяем движение относительно поворота игрока
-fn apply_movement(
-    time: Res<Time>,
-    mut query: Query<(&ActionState<Action>, &mut ExternalImpulse, &Transform), With<Player>>,
-) {
-    const IMPULSE: f32 = 20.0;
-    const JUMP_FORCE: f32 = 5.0;
-    const DEADZONE: f32 = 0.15;
-
-    for (state, mut imp, transform) in query.iter_mut() {
-        imp.impulse = Vec3::ZERO;
-
-        // получаем ввод: горизонталь → x, вперед/назад → y (инвертируем y для удобства)
-        let v: Vec2 = state.axis_pair(&Action::Move) * Vec2 { x: -1.0, y: 1.0 };
-        if v.length_squared() > DEADZONE * DEADZONE {
-            // локальное направление в плоскости XZ
-            let local_dir = Vec3::new(v.x, 0.0, v.y).normalize();
-            let world_dir = transform.rotation * local_dir;
-            imp.impulse += world_dir * IMPULSE * time.delta_secs();
-        }
-
-        // прыжок остаётся без изменений
-        if state.just_pressed(&Action::Jump) {
-            imp.impulse.y += JUMP_FORCE;
-        }
-    }
-}
-
-fn face_camera(
+fn update_all(
     time: Res<Time>,
     q_cam: Query<&Transform, (With<Camera3d>, Without<Player>)>,
-    mut q_player: Query<&mut Transform, With<Player>>,
+    mut params: ParamSet<(
+        Query<(&ActionState<Action>, &mut ExternalForce, &Transform), With<Player>>,
+        Query<&mut Transform, With<Player>>,
+    )>,
 ) {
-    let cam_tf = if let Ok(t) = q_cam.single() { t } else { return };
-    let mut player_tf = if let Ok(p) = q_player.single_mut() { p } else { return };
+    const FORCE_MAG: f32 = 2000.0;
+    const JUMP_FORCE: f32 = 500.0;
+    const DEADZONE: f32 = 0.15;
 
-    // получаем горизонтальную проекцию forward-камеры
-    let f = cam_tf.forward();
-    let dir = Vec3::new(f.x, 0.0, f.z);
-    if dir.length_squared() < 1e-4 {
-        return;
+    for (state, mut ext_force, transform) in params.p0().iter_mut() {
+        ext_force.force = Vec3::ZERO;
+
+        // получаем ввод: влево/вправо → x, вперед/назад → y (инвертируем y для удобства)
+        let v: Vec2 = state.axis_pair(&Action::Move) * Vec2 { x: -1.0, y: 1.0 };
+        if v.length_squared() > DEADZONE * DEADZONE {
+            let local_dir = Vec3::new(v.x, 0.0, v.y).normalize();
+            let world_dir = transform.rotation * local_dir;
+            ext_force.force += world_dir * FORCE_MAG * time.delta_secs();
+        }
+
+        if state.just_pressed(&Action::Jump) {
+            ext_force.force.y += JUMP_FORCE;
+        }
     }
-    let target_yaw = dir.normalize().x.atan2(dir.normalize().z);
-    let target_rot = Quat::from_rotation_y(target_yaw);
 
-    // сглаживание: интерполируем между текущим и цельным
-    const SMOOTH_FACTOR: f32 = 5.0;
-    player_tf.rotation = target_rot;
+    let cam_tf = if let Ok(t) = q_cam.single() { t } else { return };
+    for mut player_tf in params.p1().iter_mut() {
+        let f = cam_tf.forward();
+        let dir = Vec3::new(f.x, 0.0, f.z);
+        if dir.length_squared() < 1e-4 {
+            return;
+        }
+        let target_yaw = dir.normalize().x.atan2(dir.normalize().z);
+        let target_rot = Quat::from_rotation_y(target_yaw);
+
+        player_tf.rotation = target_rot;
+    }
 }
